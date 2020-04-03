@@ -1,0 +1,103 @@
+# Dementia_dialogue
+- 大武先生の実験手伝い
+
+## 環境構築メモ
+- https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
+    - pyenvが怪しいらしいのでこれで環境構築した
+    - `source dementia/bin/activate`
+
+## 3/24
+- 今ある対話アノテーションデータから「現在」「過去」「未来」を識別するclassifierを[Transformers](https://github.com/huggingface/transformers)の鈴木mさんの日本語BERTで作る
+    - `pip install transformers==2.4.1`
+        - ERROR
+            -   running build_rust
+            error: Can not find Rust compiler
+            ----------------------------------------
+            ERROR: Failed building wheel for tokenizers
+            Failed to build tokenizers
+            - Rustがない？みたいなこと言ってる
+            - From sourceで install しても同じようなERRORを吐く
+                - [Issue](https://github.com/huggingface/transformers/issues/2831)でver2.4.1を入れるといいよ！と書いてある
+
+    - とりあえずQuick Startとかやる？
+    - この前リツイートされていた[Twitterの使い方講座](https://twitter.com/huggingface/status/1205283603128758277)みる？
+        - 完全にコピーしたものを`sample.py`として作成
+
+    - torch > 1.0.0が必要なので[pytorch](https://pytorch.org/)をinstall
+    - `pip install torch torchvision`
+
+    - `python sample.py`
+        - pathが間違ってると怒られた
+            - `bert-base-japanese-whole-word-masking`だった
+        - MeCabがないと怒られた
+            - `pip install mecab-python3` 
+
+## 3/29(Sun)
+- 動いた
+
+## 3/30(Mon)
+- [(Part 2) tensorflow 2 でhugging faceのtransformers公式のBERT日本語学習済みモデルを文書分類モデルにfine-tuningする](https://tksmml.hatenablog.com/entry/2019/12/15/090900)
+    - これを見つつ分類モデルをfine-tuningする
+
+- 前処理として、
+    1.  大武先生のデータを「発話文, 過去等のラベル」的なcsvに抽出
+    2. Mecab(ipadic)で分割
+    3. BertJapaneseTokeniserでid化
+
+### 1. 大武先生のデータを「発話文, 過去等のラベル」的なcsvに抽出
+- `./data/annotationsのコピー2.csv`から`script`（実際の発話）と`time`（過去・現在・未来等のannotation）を抽出
+    - ついでにidとfile_idも
+    - csvって言ってるけどtsvだった
+    - 文字コードがutf-16だった
+
+- `annotations.csv`には全てのscriptに対してtimeが網羅的につけられているわけではない
+    - 基準は？ -> 複数
+        - 対象外フラグ（重複等でannotationの対象外とした）
+        - time_impossible（時間の判定が困難）
+            - このフラグたちがつけられていることを前提として学習するのか、それともそれらも加えて学習するのかどっち？
+            - 対象外フラグはこの時間判定器にかける前につけられそうだが、「時間の判定が困難」は厳しいのでは？それも（鈴木さんタスクにおける「解答不可能」を判定する、みたいな感じで））時間判定器が出す一つの分類の出力として入れた方が良い？
+            - そういう付け方ではない。むしろ「過去」とかが付いている者に対してflag=1を立てている
+
+        - **intention = 発言、の場合、全てのannotationがつけられていない**
+            - 過去等を判断する前に、まずintentionを判断する必要があるのでは？？
+        - こういう時にどう実装すればいいか困ったらoption化しろって言ってた
+        - のでargparseを導入し、どのannotationをつけるかoptionで選べるようにした
+    
+- `extract_data.py`というデータ抽出用のコードを作成
+    - `python extract_data.py ./data/scripts_time.tsv -t `
+    - `python extract_data.py ./data/scripts_time_intention.tsv -t -i`
+    - をそれぞれ実行し、scriptとtimeだけついたデータ(scripts_time.tsv)、scriptとtime, intentionが付いたデータ(scripts_time_intention.tsv)を作成
+
+- `tokenize_data.py`というデータtokenize用のコードを作成
+    - scriptのMecab分割
+    - timeラベルID化
+        - timeラベルの異なり数は10（ID: 0~9）
+            - `{'過去', '過去-最近', '最近（1か月以内）', '現在（状態、性質、考えなど）', '過去-現在（習慣など）', '未来（予定、予測、願望、仮定など）', '現在-未来', '最近-未来', '過去-未来', '最近-現在（習慣など）'}`
+            - （そんなにあるのか......）
+            - これ、分類できるのか？？
+            - 「過去・現在・未来」の3つに集約したくない？ → これは大武先生らと相談する必要がありそう
+                - （前まではそうだった気がするが.....、大武先生らにとっては「せっかくラベル増やしたのに.....」ということにならない？）
+            - それぞれのラベル頻度を見る → 低頻度ラベルは無視しても良いかも？
+            - intention = 発言に対するアノテーション？
+
+- 方針的にはやはりこのままで良さそう
+    - とりあえず10値分類で、`scripts_time.tsv`をtrain/dev等に分割してBERTを再学習させてみる
+    - その結果を見せながら今年度初回ミーティングを企画する（4月下旬）
+
+## 4/3(Fri)
+
+### tokenize_data.py
+- それぞれのラベル頻度を見る
+    - `label_freq:      Counter({'現在（状態、性質、考えなど）': 29626, '過去': 12065, '過去-現在（習慣など）': 5037, '最近（1か月以内）': 3749, '未来（予定、予測、願望、仮定など）': 2073, '最近-現在（習慣など）': 182, '過去-最近': 117, '現在-未来': 74, '過去-未来': 58, '最近-未来': 13})`
+    - グラフで可視化したいのでmatplotlibをinstall
+    - `pip install matplotlib`
+
+    - 時間ラベルの頻度分布を調べるのを関数化した
+        - `count_label_freq()`
+            - [plt.savefig(bbox_inches = tight)](http://virsalus.hatenablog.com/entry/2015/01/19/120931)
+            - [mpl.rcParams['font.family'] = 'Meiryo']()
+            - [plt.xticks(rotation = 270)](https://www.delftstack.com/ja/howto/matplotlib/how-to-rotate-x-axis-tick-label-text-in-matplotlib/)
+
+    - 松田さん「とりあえずは，多い方から5ラベルだけを相手にする方向でいいかもしれませんね．ほかはどこかにマージするか，無視するか，そのあたりは大武チームと相談しましょう．」
+        - わかる
+        - とりあえず10値分類と5分類（削り）を試してみるか
