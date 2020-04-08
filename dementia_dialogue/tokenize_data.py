@@ -4,6 +4,7 @@
 
 #main()
 from tqdm import tqdm
+import codecs
 import logging 
 import argparse
 import MeCab
@@ -20,15 +21,21 @@ mpl.rcParams['font.family'] = 'Meiryo'
 # logging
 logging.basicConfig(format='[%(levelname)s] %(asctime)s : %(message)s', level=logging.DEBUG, datefmt='%Y/%m/%d %p %I:%M:%S')
 
+
 # args
 parser = argparse.ArgumentParser("extract important data from original data")
 parser.add_argument('input', help="input file name")
+parser.add_argument('-max_len', help="max length", default=128, type=int)
+parser.add_argument('-train_batch', help="train batch size", default=8, type=int)
+parser.add_argument('-val_batch', help="validation batch size", default=32, type=int)
 #parser.add_argument('output', help="output file name")
 args = parser.parse_args()
-
 # input, output
 input_path = args.input
 #output_path = args.output
+max_length = args.max_len
+train_batch = args.train_batch
+val_batch = args.val_batch
 
 
 def count_label_freq():
@@ -108,44 +115,31 @@ def load_dataset(data, tokenizer, max_length=128, train_batch=8, val_batch=32):
 
 def main():
     logging.info("tokenize {} ... ".format(args.input))
-
-    # sentence1がテキスト。分かち書きは不要
-  #  data_no_wakati = {
-  #      "train": tf.data.Dataset.from_tensor_slices({
-  #          'sentence1': df_train['body'].tolist(),          
-  #          'sentence2': ['', ] * len(df_train),
-  #          'label': df_train['label'].tolist()
-  #      }),
-  #      "validation": tf.data.Dataset.from_tensor_slices({
-  #          'sentence1': df_val['body'].tolist(),
-  #          'sentence2': ['', ] * len(df_val),
-  #          'label': df_val['label'].tolist()
-  #      })
-  #  }
     
-    with open(args.input) as f_input:
+    with codecs.open(args.input, encoding='utf-8') as f_input:
         df = pd.read_table(args.input)
-        df.sum()
+        df_train = df[:32550]
+        df_val = df[32550:42550]
+        df_test = df[42550:]
+        logging.info("divided into train: {}, dev: {}, test: {}".format(len(df_train), len(df_val), len(df_test)))
 
+        # sentence1がテキスト。分かち書きは不要
+        data_no_wakati = {
+            "train": tf.data.Dataset.from_tensor_slices({
+                'sentence1': df_train['script'].tolist(),          
+                'sentence2': ['', ] * len(df_train),
+                'label': df_train['time_id'].tolist()
+            }),
+            "validation": tf.data.Dataset.from_tensor_slices({
+                'sentence1': df_train['script'].tolist(),
+                'sentence2': ['', ] * len(df_train),
+                'label': df_train['time_id'].tolist()
+            })
+        }
         # tokenizerを定義、vocabファイルやtokenizerの設定が読み込まれる
-        #tokenizer = BertJapaneseTokenizer.from_pretrained('bert-base-japanese')
+        tokenizer = BertJapaneseTokenizer.from_pretrained('bert-base-japanese')
         # 実行
-        #train_dataset, valid_dataset = load_dataset(data_no_wakati, tokenizer, max_length=max_length, train_batch=train_batch, val_batch=val_batch)
-
-        # timelabelをid化
-        # TODO: pandasで一挙にmappingする
-        time_labels = ['過去', '過去-最近', '最近（1か月以内）', '現在（状態、性質、考えなど）', '過去-現在（習慣など）', '未来（予定、予測、願望、仮定など）', '現在-未来', '最近-未来', '過去-未来', '最近-現在（習慣など）']
-        timelabel2timeid = {time_label : i for i, time_label in enumerate(time_labels)}
-        df.map(timelabel2timeid)
-
-        #print(timelabel2timeid)
-        #print(script, tokenized_script)
-        #print(time, timelabel2timeid[time])
-
-        #print(tokenized_script, time)
-
-    # 出力先
-    #logging.info("filename: '{}'".format(output_path))
+        train_dataset, valid_dataset = load_dataset(data_no_wakati, tokenizer, max_length=max_length, train_batch=train_batch, val_batch=val_batch)
 
 #count_label_freq()
 main()

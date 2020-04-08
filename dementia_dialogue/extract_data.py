@@ -1,3 +1,4 @@
+# timelabelだけ抽出 & timelabelをid化したcolumn作成
 import codecs
 from tqdm import tqdm
 import logging 
@@ -21,19 +22,30 @@ extracted_tsv_path = args.output
 
 # main
 logging.info("filename: '{}'".format(extracted_tsv_path))
+
+# label_set
+timelabel_set = ['過去', '過去-最近', '最近（1か月以内）', '現在（状態、性質、考えなど）', '過去-現在（習慣など）', '未来（予定、予測、願望、仮定など）', '現在-未来', '最近-未来', '過去-未来', '最近-現在（習慣など）']
+timelabel2id = {label : str(i) for i, label in enumerate(timelabel_set)}
+logging.info(timelabel2id)
+
 with codecs.open(csv_path, encoding="utf-16") as f_csv, open(extracted_tsv_path, 'w') as f_w:
     header = f_csv.readline().strip()
-    print(header)
+    
     header = header.split('\t')
-    added_annotations = []
+    # 抽出したいannotaitonをリスト化
+    new_header = ["id", "file_id", "script"]
+
     if args.intention:
-        added_annotations.append("intention")
+        new_header.append("intention")
     if args.time:
-        added_annotations.append("time")
-    header_list = [h for h in header if h.strip() in ["id", "file_id", "script"] + added_annotations]
-    w_header = '\t'.join(header_list) + '\n'
+        new_header.append("time")
+        new_header.append("time_id")
+    
+    w_header = '\t'.join(new_header) + '\n'
+    print(w_header)
     f_w.write(w_header)
     j = 0
+
     # 0: id, 1: file_id, 6: speaker, 8: script, 13: intention, 22: time
     for i, line in tqdm(enumerate(f_csv)):
         line = line.strip()
@@ -44,13 +56,14 @@ with codecs.open(csv_path, encoding="utf-16") as f_csv, open(extracted_tsv_path,
         if args.intention:
             columns.append(intention)
         if args.time:
-            columns.append(time)
-        
-        if len(time.strip()) > 1:
-            j += 1
-            writeline = '\t'.join(columns) + '\n'
-            f_w.write(writeline)
-    #print(w_header)
-    #print(writeline)
+            if len(time.strip()) > 1:
+                time_id = timelabel2id[time]
+                if time_id not in ['1', '6', '7', '8', '9']:
+                    columns.append(time)
+                    columns.append(timelabel2id[time])
+                    writeline = '\t'.join(columns) + '\n'
+                    f_w.write(writeline)
+                    j += 1
+    
     logging.info("whole sentences: " + "{}(/{})".format(str(j), str(i)))
         
