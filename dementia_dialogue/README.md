@@ -147,3 +147,69 @@
 - updateされた`./data/script_time.tsv`のtime_id列をlabelとして参照
 - とりあえずload_dataset()までは動いたっぽい？
 
+## 4/21(Tue)
+- マジでしばらく放置してたな.......
+
+- RAIDENに実行環境を整える必要がある
+    - https://io-lab.esa.io/posts/1047
+    - 色々面倒っぽい.......
+
+- 環境はcondaで作るのが良い？
+    - 清野さんはpyenvで作っている？でも結構前の記事だからな.....
+- コンテナでやるのが良い？？
+    - 人に聞くのが一番速そうなきもしないでもない......
+
+- https://files.esa.io/uploads/production/attachments/4896/2018/04/23/18306/c5294517-86c3-4ad6-8a54-b39319ed9414.pdf
+    - 最初はこれを見てやるのが一番いいらしい
+    - Hands on #2あたりが参考になるか？
+    - なんか変だと思ったら、`after login to the container`って書いてある
+        - zshに変えたけど、普通にbashでやった方が楽そう...
+            - だけど、.bashrcをrmしてしまった.......
+            - [./bash_projileや.bashrcの大元は/etc/skelにある](https://qiita.com/shyamahira/items/260862743e4c9794b5d2)のでそこからcopyしてきて解決
+    
+    - esaの「fairseqのインストールまで」って所を見る
+        - fairseq->transformerにすれば良いわけだし行けそう？
+        - `# コンテナに入り，環境変数などの設定をする`の部分は実行済
+        - `#cuda10仮想環境の有効化をする`あたりから変える必要がありそう
+            - とりあえず今あるdementia環境に`source dementia/bin/activate`でログインした上で、`pip install torch torchvision`をしてみる（Linux, cuda10を選んだらそれになったがlocalでやった時と同じでは.....？）
+                - なんかめっちゃRetryしてる......
+                - 最終的に`Could not find a version that satisfies the requirement torch (from versions: )No matching distribution found for torch`と怒られた
+            - やっぱりserver上で新しく環境作った方が良いんじゃないか......？
+                - 一から「dementia_cuda10」環境を作ろうとしたら、`python3-venv`がないと怒られた
+                - んん......
+                - condaで作るか...？
+                - condaのinstallから始まる
+                    - 清野さんはminicondaらしいのでminicondaをinstallする
+                    - これ最新のだとpy=3.7になるっぽいけどそれでいいのかな.......
+                - miniconda installしたぞと思ってconda createとかやってもnot foundと怒られる
+                - InstallationにPATHに通せと書いてあるからPATHを見たけど、思った以上にPATH色々通ってるな？？？？？→よく読んだら「install shell scriptは自動的にpathを通してくれます」って書いてないか？
+                    - condaとかちゃんと書いてない？？
+                    - あ、`.bashrc`にminicondaへのpathを書いてくれてるのね......
+
+                - `conda create -n cuda10.0 py=3.6`を試しにやってみる
+                    - py=3.6でいいのか......
+                    - `Collecting package metadata`から動かない.....
+                    - え？？anacondaのHTTPに繋がないといけないの？？
+                        - 「コンテナの中でインターネットに繋ぐ」をやんないといけないってこと？？
+                        - なんなん？？
+                        - 見た感じ既に「base」という環境に入ってるぽいのでもうそこにinstallしていっちゃう？
+                        - conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
+
+## 4/23(Tue)
+- 鈴木さんと雑談
+    - 鈴木さんはprojectごとのディレクトリにpython3のvenvで仮想環境作ってる
+        - ログインノードだからpip等が動かなかった
+        - GPUノードだと4時間しかインタラクティブにできないので、長時間ならジョブを投げないといけない
+    - esaに書いてある`setup.py`をsourceにしとく必要がある？（これはそのままコピーして大丈夫）
+    - IP adressがCPUノードとGPUノードで違う
+        - For PPCって書いてるのがCPUノード
+    - 「コンテナの中でインターネットに繋ぐ」 & 「コンテナ内でvenv環境を使う」試してみる！ 
+
+## 4/24(Fri)
+- `setup.py`書いてbash_profileに実行する旨書く
+    - `Collecting package metadata...`はいい感じに行ってるっぽいが、py=3.6とか3.7と指定してもPackagesNotFoundErrorと言われる
+
+
+
+
+    
