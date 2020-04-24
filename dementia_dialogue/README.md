@@ -5,6 +5,9 @@
 - https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
     - pyenvが怪しいらしいのでこれで環境構築した
     - `source dementia/bin/activate`
+- サーバversion
+    - `qrsh -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003` # コンテナに入る
+    - `source ./dementia_cuda10/bin/activate` # cuda10のvenv仮想環境に入る
 
 ## 3/24
 - 今ある対話アノテーションデータから「現在」「過去」「未来」を識別するclassifierを[Transformers](https://github.com/huggingface/transformers)の鈴木mさんの日本語BERTで作る
@@ -206,10 +209,59 @@
     - 「コンテナの中でインターネットに繋ぐ」 & 「コンテナ内でvenv環境を使う」試してみる！ 
 
 ## 4/24(Fri)
-- `setup.py`書いてbash_profileに実行する旨書く
-    - `Collecting package metadata...`はいい感じに行ってるっぽいが、py=3.6とか3.7と指定してもPackagesNotFoundErrorと言われる
+- 「コンテナの中でインターネットに繋ぐ」をやる
+    - `setup.py`書いてbash_profileに実行する旨書く
+        - `Collecting package metadata...`はいい感じに行ってるっぽいが、py=3.6とか3.7と指定してもPackagesNotFoundErrorと言われる
 
+- 「コンテナ内でvenv環境を使う」
+    - `.bashrc`に書いてあるcondaへのPATH通しを一旦コメントアウトして、venv環境を使う
+    - `pip install torch torchvision --user`を試してみる
+        - `Permission denied error`が出た
+        - `--user` optionが必要
+        - なんかこれまでつまづいていたところはある程度いけてるっぽいが、よく読むとsite-packagesとかが「python3.5」と書いてある
+        - なんで？
 
+    - globalに参照するpython3がpython3.5.2っぽい？？
+    - え〜〜
+        - やっぱminicondaの環境使う？
+        - minicondaの(base)環境に入っても、python3で実行されるのはpython3.5.2なのだが......
+        - `~/miniconda3/bin/python3.7`を実行するとPython3.7.6が起動される（それはそう）
 
+        - [PYTHONUSERBASE](https://qiita.com/ronin_gw/items/cdf8112b61649ca455f5)なる環境変数があるらしい
+            - 設定したが、なぜかminiconda3の中にもpython3.5があり、頑なにpython3.7にinstallしてくれない
+            - なんで？？？？
 
-    
+    - `conda list`を実行すると、pythonは3.7.6だと書かれている
+        - 普通にpy=とか指定しなければいいのでは？というか、たぶんpython=3.6とかならいけた？？
+        - いけた〜〜〜〜
+
+### サーバ仮想環境構築(dementia_cuda10)
+- condaによる格闘の跡
+    - `conda activate cuda10.0`
+    - `pip install tensorflow` （現versionはgpuとか区別しなくて良いっぽい......？）
+        - cudaにPATH通す奴は...？
+        - ていうかあれ、またpython3.5の環境にinstallしてない.....？
+        - condaでinstallしたら良い.....？
+    - `conda install pytorch torchvision cudatoolkit=10.0 -c pytorch`
+    - `conda install -c anaconda tensorflow-gpu`
+        - tensorflow==2.0.0 installできてるし、大丈夫そうではある.....
+    - `conda install torchvision`
+        - build py36_0とも書いてるし大丈夫そう......？
+    - `conda install transformers`
+        - これはPackagesNotFoundErrorが出る
+    - `home/src`directoryを新しく作り、そこにtransformers　repositoryを置く
+        - いや、結局`pip install .`を実行できないと厳しい......？
+
+- `venv`格闘に戻る
+    - python3.5になっちゃうやつを鈴木mさんに聞く
+        - コンテナに入っているpythonが3.5になってしまっている
+    - `nvcr-pytorch-2003`のコンテナ（python3.6)内でやると良い？
+        - `cat containor-info`
+    - やった〜〜〜できた〜〜〜
+
+- `dementia_cuda10`環境設定
+    - `pip install transformers`
+    - `pip install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl`
+    - `pip install torchvision`
+
+- 試しにfairseq git cloneして清野さんみたいに実行してみるか.....？ -> 保留
