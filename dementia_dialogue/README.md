@@ -2,14 +2,16 @@
 - 大武先生の実験手伝い
 
 ## 環境構築メモ
-- https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
+- local version (`dementia`)
+    - https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
     - pyenvが怪しいらしいのでこれで環境構築した
     - `source dementia/bin/activate`
-- サーバversion
+- server version (`dementia_cuda10`)
     - `qrsh -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003` # コンテナに入る
     - `source ./dementia_cuda10/bin/activate` # cuda10のvenv仮想環境に入る
 
-## 3/24
+## log
+### 3/24
 - 今ある対話アノテーションデータから「現在」「過去」「未来」を識別するclassifierを[Transformers](https://github.com/huggingface/transformers)の鈴木mさんの日本語BERTで作る
     - `pip install transformers==2.4.1`
         - ERROR
@@ -35,10 +37,10 @@
         - MeCabがないと怒られた
             - `pip install mecab-python3` 
 
-## 3/29(Sun)
+### 3/29(Sun)
 - 動いた
 
-## 3/30(Mon)
+### 3/30(Mon)
 - [(Part 2) tensorflow 2 でhugging faceのtransformers公式のBERT日本語学習済みモデルを文書分類モデルにfine-tuningする](https://tksmml.hatenablog.com/entry/2019/12/15/090900)
     - これを見つつ分類モデルをfine-tuningする
 
@@ -47,7 +49,7 @@
     2. Mecab(ipadic)で分割
     3. BertJapaneseTokeniserでid化
 
-### 1. 大武先生のデータを「発話文, 過去等のラベル」的なcsvに抽出
+#### 1. 大武先生のデータを「発話文, 過去等のラベル」的なcsvに抽出
 - `./data/annotationsのコピー2.csv`から`script`（実際の発話）と`time`（過去・現在・未来等のannotation）を抽出
     - ついでにidとfile_idも
     - csvって言ってるけどtsvだった
@@ -87,9 +89,9 @@
     - とりあえず10値分類で、`scripts_time.tsv`をtrain/dev等に分割してBERTを再学習させてみる
     - その結果を見せながら今年度初回ミーティングを企画する（4月下旬）
 
-## 4/3(Fri)
+### 4/3(Fri)
 
-### tokenize_data.py
+#### tokenize_data.py
 - それぞれのラベル頻度を見る
     - `label_freq:      Counter({'現在（状態、性質、考えなど）': 29626, '過去': 12065, '過去-現在（習慣など）': 5037, '最近（1か月以内）': 3749, '未来（予定、予測、願望、仮定など）': 2073, '最近-現在（習慣など）': 182, '過去-最近': 117, '現在-未来': 74, '過去-未来': 58, '最近-未来': 13})`
     - グラフで可視化したいのでmatplotlibをinstall
@@ -105,14 +107,14 @@
         - わかる
         - とりあえず10値分類と5分類（削り）を試してみるか
 
-## 4/6(Mon)
-### tokenize_data.pyの続き
+### 4/6(Mon)
+#### tokenize_data.pyの続き
 - Mecab分割をしたい
     - Mecab-python, うまく動かすのむずいんだよな〜と思ってたけど、BertJapaneseTokenizerでいける？？
 - 上のリンク先のtensorflowを用いたdata tokenizeコードをcopy
 
-## 4/7(Tue)
-### 昨日に引き続きtokenize_data.py
+### 4/7(Tue)
+#### 昨日に引き続きtokenize_data.py
 - めんどくさいから先にMeCab分割がちゃんどできるかみたい
 - そもそも1行ごとの処理ではなく、pandasで一気に処理した方が良さそう（tfを用いたデータ分割がDataFrame上でで行われているため）
     - `pip install pandas`
@@ -121,16 +123,16 @@
     - から、上のリンク先のコードをそんな単純に使えるわけではない
         - file_id フィールドがそれっぽいですね．226セッションあるのですね．`200 / 13 / 13` くらいか，もうすこし dev / test が多い `150 / 38 / 38` か，それくらいでしょうか．by 松田さん
 
-### 松田さんと打ち合わせ
+#### 松田さんと打ち合わせ
 - 最初から5ラベルでやってみる
 
 - 他のannotationラベルについての分布可視化もしておく？（なんかやってる感を出す.....）
     - 理想はRAIDENで学習回してるときにこの分布可視化 & スライド作成
 
-## 4/8(Wed)
+### 4/8(Wed)
 - とりあえず方言ジャーナルを無理やりfixさせてこっちに取り掛かる
 
-### extract_data.pyでid化したtimelabel列を作成する
+#### extract_data.pyでid化したtimelabel列を作成する
 - `./data/script_time.tsv`をそういうデータに置き換える
     - ついでに、ここで5値に減少させる......？
     - `{'過去': '0', '過去-最近': '1', '最近（1か月以内）': '2', '現在（状態、性質、考えなど）': '3', '過去-現在（習慣など）': '4', '未来（予定、予測、願望、仮定など）': '5', '現在-未来': '6', '最近-未来': '7', '過去-未来': '8', '最近-現在（習慣など）': '9'}`
@@ -146,11 +148,11 @@
 ```
 - ちょうどきりの良い数字になった
 
-## tokenize_data.py
+#### tokenize_data.py
 - updateされた`./data/script_time.tsv`のtime_id列をlabelとして参照
 - とりあえずload_dataset()までは動いたっぽい？
 
-## 4/21(Tue)
+### 4/21(Tue)
 - マジでしばらく放置してたな.......
 
 - RAIDENに実行環境を整える必要がある
@@ -198,7 +200,7 @@
                         - 見た感じ既に「base」という環境に入ってるぽいのでもうそこにinstallしていっちゃう？
                         - conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
 
-## 4/23(Tue)
+### 4/23(Tue)
 - 鈴木さんと雑談
     - 鈴木さんはprojectごとのディレクトリにpython3のvenvで仮想環境作ってる
         - ログインノードだからpip等が動かなかった
@@ -208,7 +210,7 @@
         - For PPCって書いてるのがCPUノード
     - 「コンテナの中でインターネットに繋ぐ」 & 「コンテナ内でvenv環境を使う」試してみる！ 
 
-## 4/24(Fri)
+### 4/24(Fri)
 - 「コンテナの中でインターネットに繋ぐ」をやる
     - `setup.py`書いてbash_profileに実行する旨書く
         - `Collecting package metadata...`はいい感じに行ってるっぽいが、py=3.6とか3.7と指定してもPackagesNotFoundErrorと言われる
@@ -235,7 +237,7 @@
         - 普通にpy=とか指定しなければいいのでは？というか、たぶんpython=3.6とかならいけた？？
         - いけた〜〜〜〜
 
-### サーバ仮想環境構築(dementia_cuda10)
+#### サーバ仮想環境構築(dementia_cuda10)
 - condaによる格闘の跡
     - `conda activate cuda10.0`
     - `pip install tensorflow` （現versionはgpuとか区別しなくて良いっぽい......？）
@@ -260,8 +262,43 @@
     - やった〜〜〜できた〜〜〜
 
 - `dementia_cuda10`環境設定
-    - `pip install transformers`
+    - `pip install transformers==2.4.1`
     - `pip install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl`
     - `pip install torchvision`
+    - `pip install mecab-python3`
 
-- 試しにfairseq git cloneして清野さんみたいに実行してみるか.....？ -> 保留
+- **`python sample.py`が動いた！！！！！！！！**
+    - もう終わっていいか（ダメ）
+
+## TODAY
+### 5/19(Tue) 
+- 1ヶ月くらい経とうとしていた......これはいかん
+
+- 科研費奨励費のアレ
+    - 「クラウドソーシングで人手評価するぞ！」と言っていたけど、個人情報とか大丈夫なんだっけ？
+    - [理研の研究倫理のやつ](https://www.riken.jp/medialibrary/riken/about/reports/ethics/ethics-bylaw_20190723.pdf)
+        - 「ヒトゲノム・遺伝子解析研究以外の研究に係る個人情報等の保護」の第7条とかがそれっぽい
+            - 匿名化とかすれば基本的には良い
+            - けど住んでるところがだいたいわからなくもないので、その辺も少し必要かも
+
+- やることを整理しよう
+    - 土日で学習を回したい
+        - 前処理の完遂
+            - MeCabをかける
+            - japanese-BERTの中に入っているtokenizerで分ける
+        - 評価をどうするか（データのsplit問題）
+            - **train / dev / testの分割をfile_id単位で行う**
+            - file_idで分割
+            - 226セッションある → `150 / 38 / 38` で分割する
+
+- あのサイトに従ってやらない方が良い気がしてきた
+- 自分でゆっくりやって行った方が良さそう
+    - python ./tokenize_data.pyを実行しようとしたらエラーをtensorflowがないと言われたので、`pip install tensorflow-gpu`をしてみる
+        - なんかPATHが通ってないとかって怒られたから一応`/uge_mnt/home/abe-k/.local/bin`をexportでPATHに通す
+        - 「お前は何を言っているんだ」的なエラーが出た
+        - > OSError: Model name 'bert-base-japanese' was not found in tokenizers model name list (bert-base-japanese, bert-base-japanese-whole-word-masking, ...)
+
+- （余談）rikenサーバの端末のプロンプトを変えたい
+    - https://qiita.com/wildeagle/items/5da17e007e2c284dc5dd
+        - `~/.bashrc`に書いたら、仮想環境をactivateするまではいいのだがactivateした後ダメになる
+        - う〜む
