@@ -270,7 +270,6 @@
 - **`python sample.py`が動いた！！！！！！！！**
     - もう終わっていいか（ダメ）
 
-## TODAY
 ### 5/19(Tue) 
 - 1ヶ月くらい経とうとしていた......これはいかん
 
@@ -291,14 +290,150 @@
             - file_idで分割
             - 226セッションある → `150 / 38 / 38` で分割する
 
-- あのサイトに従ってやらない方が良い気がしてきた
-- 自分でゆっくりやって行った方が良さそう
+- あのサイトに従ってやらない方が良い気がしてきた, 自分でゆっくりやって行った方が良さそう -> [これ](https://qiita.com/nekoumei/items/7b911c61324f16c43e7e)は参考になるかも
     - python ./tokenize_data.pyを実行しようとしたらエラーをtensorflowがないと言われたので、`pip install tensorflow-gpu`をしてみる
         - なんかPATHが通ってないとかって怒られたから一応`/uge_mnt/home/abe-k/.local/bin`をexportでPATHに通す
-        - 「お前は何を言っているんだ」的なエラーが出た
+    - 「お前は何を言っているんだ」的なエラーが出た
         - > OSError: Model name 'bert-base-japanese' was not found in tokenizers model name list (bert-base-japanese, bert-base-japanese-whole-word-masking, ...)
+        - 松田さんから「modelの置き場所が変わったらしい」との情報、upgradeしたら動くようになった
 
-- （余談）rikenサーバの端末のプロンプトを変えたい
+- `tokenize_data.py`tokenizeできるようになった
+    - tokenizeしたデータを持っていた上で、train, dev, testに分けたい
+
+#### 明日やること
+- 早くtrain, dev, testに分けようね
+
+- modelのfine-tuningをどうするかに関してはなんか色々なサイトが出てきて混乱している。皆自己流でやってんな......
+    - GLEU taskを解く流れにぬるっと新しいtaskを挿入する、ということをやっている人もいる(https://qiita.com/kenta1984/items/7f3a5d859a15b20657f3)、がGLEUの概念を崩壊させていそうなのであんまりやりたくない（簡単そうだけど.....）
+
+- （余談）rikenサーバの端末のプロンプトを変えたい（未解決）
     - https://qiita.com/wildeagle/items/5da17e007e2c284dc5dd
         - `~/.bashrc`に書いたら、仮想環境をactivateするまではいいのだがactivateした後ダメになる
         - う〜む
+
+- （余談2）kiyonoさんのスライドに従ってSFTPしたい（**解決**）
+    - 曰く、使っているソフト名 + SFTPと検索すれば良い→でてきたのが[コレ](https://qiita.com/ishimasar/items/1324af16e19a59b220d3) 
+    - simpleな`sample_sftp`というディレクトリに関してはうまく行ったが、`dementia_dialogue`に関してはうまくいかない...
+    - と思ったら, portの問題だったっぽい？
+        - めっちゃ頑張って`dementia_cuda10`の設定とかdownloadしてくれてるっぽい...これ大丈夫か......
+
+### 5/20(Wed)
+
+#### データ分割
+- 効率的にやるのは諦めて、とりあえず自分でわかるようにやっていこう...
+
+- tokenizedしたscript列を追加した`./scripts_time.tsv.tok`をtmpディレクトリに一旦保存→それを分割、というふうにする
+
+- `./scripts_time.tsv.tok`を読み込んで、file_idで分割
+    - 226セッションある → `150 / 37 / 37` で分割する
+        - train: 1 ~ 150
+        - dev: 151 ~ 189
+        - test: 190 ~ 226
+
+- セッションごとに分割 → 実際の文数は以下のようになった
+```
+11019 ./data/test.tok
+32816 ./data/train.tok
+8715 ./data/valid.tok
+----------------------
+52550 total
+```
+
+
+## TODAY
+### 5/22(Fri)
+#### モデル作成
+- https://qiita.com/kenta1984/items/7f3a5d859a15b20657f3
+- ちょっと邪道だが、これを参考にしてみる
+    - transformersのglue.pyとmetrics/__init.pyをいじる
+    - 以下を実行
+    ```run.sh
+    DATA_DIR=/home/abe-k/dementia_dialogue/dementia_dialogue/data/
+    OUTPUT_DIR=/home/abe-k/dementia_dialogue/dementia_dialogue/output
+
+    python ~/src/transformers/examples/text-classification/run_glue.py \
+    --data_dir=$DATA_DIR \
+    --model_type=bert \
+    --model_name_or_path=bert-base-japanese-whole-word-masking \
+    --task_name=original \
+    --do_train \
+    --do_eval \
+    --output_dir=$OUTPUT_DIR
+    ```
+
+- `run_glue.py`はgit cloneしたリポジトリの中のexampleの部分にあるっぽい
+    - `home/abe-k/src/`以下にinstall する（version管理のため）
+    - `pip install -r ./examples/requirements.txt`
+
+    - 上のやつを動かす前に、そもそも普通のglueがうまくいくのか試したい...
+        - `transformers/data`にglue（wnli）のデータをinstallしてみる
+         - localに一旦落としてから`rsync`でサーバにあげようかと思ったけど、とりあえず`wget https://firebasestorage.googleapis.com/v0/b/mtl-sentence-representations.appspot.com/o/data%2FMNLI.zip?alt=media&token=50329ea1-e339-40e2-809c-10c40afff3ce`を試してみる → フリーズしている & ダウンロード具合が表示されない。**wgetは使わない方が良さそう**
+        - **rsyncで送る時、サーバ側のpwdで出てくる`uge_mnt`はいらない**
+
+    - 以下を実行するも、FileNotFoundErrorが出る
+    ```python examples/text-classification/run_glue.py \
+    --data_dir=/data/WNLI \
+    --model_type=bert \
+    --model_name_or_path=bert-base-uncased \
+    --task_name=wnli \
+    --do_train \
+    --do_eval \
+    --output_dir=output/
+    ```
+    > FileNotFoundError: [Errno 2] No such file or directory: '/data/WNLI/cached_train_BertTokenizer_128_wnli.lock'
+    - 検索しても、1件もHITしない。あれえ.....？
+        - examples/text-classificationの中のREADME.mdを見たら、xnliにはxnli用のscriptがあったり、他のglueタスクにもそれぞれsnippetがあったりしたのでそれを実行した方が良さそう。
+    
+    - ↑を実行したら結局src/transformersの中身を実行しているので、それをいじる
+        - glue_tasks_num_labelsとかと言われている
+
+> 05/22/2020 05:46:39 - WARNING - __main__ -   Process rank: -1, device: cpu, n_gpu: 0, distributed training: False, 16-bits training: False 
+    - GPU使ってないな.....
+
+Traceback (most recent call last):
+  File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 108, in main
+    num_labels = glue_tasks_num_labels[data_args.task_name]
+KeyError: 'original'
+
+- 以下は上のエラーからassertされたものだから一旦置いておく
+During handling of the above exception, another exception occurred:
+Traceback (most recent call last):
+  File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 228, in <module>
+    main()
+  File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 111, in main
+    raise ValueError("Task not found: %s" % (data_args.task_name))
+ValueError: Task not found: original
+
+- 直したが、ipdbで確かめてみてもglue_tasks_num_labelsにoriginalが入っていない🤔
+> ipdb> glue_tasks_num_labels                                                                                                                                 
+{'cola': 2, 'mnli': 3, 'mrpc': 2, 'sst-2': 2, 'sts-b': 1, 'qqp': 2, 'qnli': 2, 'rte': 2, 'wnli': 2}
+
+- 考えられうる場所（仮想環境`dementia_cuda10`のlib or git cloneしたリポジトリ）は`original`を付け加えたと思うんだけど、`import transformers`はどこをみてるんだ？
+    - 「text-classification内」は見てるけど、src/transformersは見てなさそう？
+ipdb> sys.path                                                                                                              
+['/home/abe-k/dementia_cuda10/lib/python3.6/site-packages', '/uge_mnt/home/abe-k/src/transformers/examples/text-classification', '/opt/conda/lib/python36.zip', '/opt/conda/lib/python3.6', '/opt/conda/lib/python3.6/lib-dynload', '', '/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages', '/opt/conda/lib/python3.6/site-packages', '/opt/conda/lib/python3.6/site-packages/IPython/extensions', '/uge_mnt/home/abe-k/.ipython']
+`/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages`ここにもtransformersある、これをimportしてるかも
+    - これをimportしてた
+
+- 動いたけど、またError
+> Traceback (most recent call last):
+  File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 230, in <module>
+    main()
+  File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 139, in main
+    train_dataset = GlueDataset(data_args, tokenizer=tokenizer) if training_args.do_train else None
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/datasets/glue.py", line 111, in __init__
+    output_mode=self.output_mode,
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 64, in glue_convert_examples_to_features
+    examples, tokenizer, max_length=max_length, task=task, label_list=label_list, output_mode=output_mode
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 136, in _glue_convert_examples_to_features
+    labels = [label_from_example(example) for example in examples]
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 136, in <listcomp>
+    labels = [label_from_example(example) for example in examples]
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 131, in label_from_example
+    return label_map[example.label]
+KeyError: '3'
+
+- これって、glueで想定される多値ラベルよりも多いから...？
+    - 頑張ればどうにかできそう？
+    - Original_Processorの, get_label部分を["0", "1"] → ["0", ~, "5"]に拡張
+    
