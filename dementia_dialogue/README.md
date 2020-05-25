@@ -1,4 +1,4 @@
-# Dementia_dialogue
+v# Dementia_dialogue
 - 大武先生の実験手伝い
 
 ## 環境構築メモ
@@ -8,7 +8,10 @@
     - `source dementia/bin/activate`
 - server version (`dementia_cuda10`)
     - `qrsh -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003` # コンテナに入る
-    - `source ./dementia_cuda10/bin/activate` # cuda10のvenv仮想環境に入る
+    - `source /fefs/opt/dgx/env_set/common_env_set.sh`
+    - `source /fefs/opt/dgx/env_set/nvcr-tensorrt-1901-py3.sh` # なんかpytorch-2003-py3.shにしたらうまく行かない。これでいいならこれでいいのでは
+    - `/usr/local/bin/nvidia_entrypoint.sh`
+    - `source ./cuda10/bin/activate` # cuda10のvenv仮想環境に入る
 
 ## log
 ### 3/24
@@ -416,24 +419,222 @@ ipdb> sys.path
     - これをimportしてた
 
 - 動いたけど、またError
-> Traceback (most recent call last):
+    > Traceback (most recent call last):
+    File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 230, in <module>
+        main()
+    File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 139, in main
+        train_dataset = GlueDataset(data_args, tokenizer=tokenizer) if training_args.do_train else None
+    File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/datasets/glue.py", line 111, in __init__
+        output_mode=self.output_mode,
+    File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 64, in glue_convert_examples_to_features
+        examples, tokenizer, max_length=max_length, task=task, label_list=label_list, output_mode=output_mode
+    File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 136, in _glue_convert_examples_to_features
+        labels = [label_from_example(example) for example in examples]
+    File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 136, in <listcomp>
+        labels = [label_from_example(example) for example in examples]
+    File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 131, in label_from_example
+        return label_map[example.label]
+    KeyError: '3'
+    - これって、glueで想定される多値ラベルよりも多いから...？
+        - 頑張ればどうにかできそう？
+        - Original_Processorの, get_label部分を["0", "1"] → ["0", ~, "5"]に拡張
+
+- 次のエラー（エラー100本knockみたいになってきた）
+    > Traceback (most recent call last):
+    File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 230, in <module>
+        main()
+    File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 140, in main
+        eval_dataset = GlueDataset(data_args, tokenizer=tokenizer, mode="dev") if training_args.do_eval else None
+    TypeError: __init__() got an unexpected keyword argument 'mode'
+    これはgit cloneしたtransformersの`run_glue.py`の話なので、./local/libの中のtransformersとこの`run_glue.py`の不整合かもしれない
+    - ./local内のGlueDatasetはevaluate=False, という形になっている→ これをTrueにするようにすればOK?
+        - それぞれ`mode="dev"`, `mode="test`となってるんだけどどっちも`evaluate=True`でいいんだろうか...
+
+- 次のエラー
+> raceback (most recent call last):                                                                                                  | 0/4102 [00:00<?, ?it/s]
   File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 230, in <module>
     main()
-  File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 139, in main
-    train_dataset = GlueDataset(data_args, tokenizer=tokenizer) if training_args.do_train else None
-  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/datasets/glue.py", line 111, in __init__
-    output_mode=self.output_mode,
-  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 64, in glue_convert_examples_to_features
-    examples, tokenizer, max_length=max_length, task=task, label_list=label_list, output_mode=output_mode
-  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 136, in _glue_convert_examples_to_features
-    labels = [label_from_example(example) for example in examples]
-  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 136, in <listcomp>
-    labels = [label_from_example(example) for example in examples]
-  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/data/processors/glue.py", line 131, in label_from_example
-    return label_map[example.label]
-KeyError: '3'
+  File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 162, in main
+    model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/trainer.py", line 415, in train
+    tr_loss += self._training_step(model, inputs, optimizer)
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/trainer.py", line 506, in _training_step
+    outputs = model(**inputs)
+  File "/opt/conda/lib/python3.6/site-packages/torch/nn/modules/module.py", line 550, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/uge_mnt/home/abe-k/.local/lib/python3.6/site-packages/transformers/modeling_bert.py", line 1161, in forward
+    loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+  File "/opt/conda/lib/python3.6/site-packages/torch/nn/modules/module.py", line 550, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/opt/conda/lib/python3.6/site-packages/torch/nn/modules/loss.py", line 932, in forward
+    ignore_index=self.ignore_index, reduction=self.reduction)
+  File "/opt/conda/lib/python3.6/site-packages/torch/nn/functional.py", line 2298, in cross_entropy
+    return nll_loss(log_softmax(input, 1), target, weight, None, ignore_index, None, reduction)
+  File "/opt/conda/lib/python3.6/site-packages/torch/nn/functional.py", line 2096, in nll_loss
+    ret = torch._C._nn.nll_loss(input, target, weight, _Reduction.get_enum(reduction), ignore_index)
+IndexError: Target 5 is out of bounds.
+- targetはおそらくlabelのことだと思うが、0~5にしたはずなんだけどな......。
+    - もしデータを全部流し見ているという話なら、5が出るまでにはしばらくかかるはずなのだが、しょっぱなからエラー出ている？のも少し謎？
+    - （あんまりこんな邪道な事してる人いないやろと思って）ダメ元でエラー文で検索かけたら、割といっぱい出てきた
+    - https://discuss.pytorch.org/t/indexerror-target-2-is-out-of-bounds/69614
+        - torchのshapeとの不整合が原因っぽい。たぶんどっかの変数がまだ2か3のまま
+        - `modeling_bert.py`のloss関数に渡してるself.num_labelsがあやしい気がする
+        - BertForTokenClassification classのself.num_labelsは、config.num_labelsで定義される
+            - config, modelのnum_labels確認 → configをみる限り、label2id等はちゃんと6値になっている ん？いやこれ......5値では？？？
+            - num_labelsの値、6にしないといけないのでは？
+            - 動いた？？？気がする？？？？？
 
-- これって、glueで想定される多値ラベルよりも多いから...？
-    - 頑張ればどうにかできそう？
-    - Original_Processorの, get_label部分を["0", "1"] → ["0", ~, "5"]に拡張
+- gpuで回す、あとその他の必要そうなoptionも
+    - `--seed 0`
+    - `num_train_epochs 3`
+    - `--per_gpu_train_batch_size 8` :  PER_GPU_TRAIN_BATCH_SIZE Batch size per GPU/CPU for training.
+    - `--per_gpu_eval_batch_size 8` : PER_GPU_EVAL_BATCH_SIZE Batch size per GPU/CPU for evaluation.
+    - gpuで回すのって、もしかしてjobを投げるときに指定するのかな...？
+        - とりあえずdata, outputディレクトリ以下にsampleディレクトリを作成して、`head {train/valid/test}.txt`で作成したsample dataで回してみる（これならCPUで回るでしょ）
+        - 回った！！！
+    - うっかりoverwriteしないように、overwriteする時もoptionで指定する様になってるのか......すごい
+
+    - `--do_predict`（未解決）
+        - つけたらエラー出た
+        > Traceback (most recent call last):
+        File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 230, in <module>
+            main()
+        File "/uge_mnt/home/abe-k/src/transformers/examples/text-classification/run_glue.py", line 219, in main
+            item = test_dataset.get_labels()[item]
+        AttributeError: 'GlueDataset' object has no attribute 'get_labels'
+        - `get_labels`関数は、Processorにあったような気がするが......
+            - あんまりすぐ解決策が思いつかない（devの場合はどうしてるのか、とかを見ながら...って感じか？）ので、これは保留しておいて自分でpredictすることにする？
+    
+    - io-esaのRAIDENページを見ながら、job投げるscriptをhomeディレクトリにおく
+    - `job_src`ディレクトリを作成、とりあえずそこにいっぱい書いてく？ → `dementia_run.sh`
+
+    - 基本的にkiyonoさんのscriptに従う
+        - containerが違うはずなので、そのsetupのscript名を変更
+        - 仮想環境も違うはずなので、それを変更
+    
+    - gpuが動かない問題、[このIssue](https://github.com/huggingface/transformers/issues/2704)に従って`torch.cuda.is_available()`を試してみるとFalseが出た = torchのcudaのversionがあってない（あれ？？）
+    - う〜む
+        - もう一回kiyonoさんのこれでinstallしてみる
+            - pip install https://download.pytorch.org/whl/cu100/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl  #CUDA10のビルド済みバイナリ
+            - pip install torchvision
+
+        - なんかpipの参照先 /opt/conda/libになってない？？
+            - で、そこからuninstallしようとしてるからpermission deniedって言われてる
+            - は？？？
+        - export PYTHONPATH="/uge_mnt/home/abe-k/dementia_dialogue/dementia_dialogue/dementia_cuda10/lib/python3.6/site-packages/:$PYTHONPATH"
+        - export LD_LIBRARY_PATH="/uge_mnt/home/abe-k/dementia_dialogue/dementia_dialogue/dementia_cuda10/lib"
+            - これらを実行して`import torch`したらいつもより時間かかった
+            - やったか？？ → やってない
+        - じゃあこの`dementia_cuda10`は無の境地なの？./dementia_cuda10/lib以下はなんなの？？
+            - `pyvenv.cfg`がconfig fileらしい、それをみると `home = /opt/local/bin`になっている
+            - そうなの？？？？？？
+                - 試しに`home = /uge_mnt/home/abe-k/dementia_dialogue/dementia_dialogue/dementia_cuda10/`にしてみてsource activateを実行してみるが、`which pip`しても`pipはobt/conda/bin`のまま
+        - [venv documentation](https://docs.python.org/ja/3/library/venv.html)
+            > 仮想環境が有効な場合 (すなわち、仮想環境の Python インタープリタを実行しているとき)、 sys.prefix と sys.exec_prefix は仮想環境のベースディレクトリを示します。 代わりに sys.base_prefix と sys.base_exec_prefix が仮想環境を作るときに使った、仮想環境ではない環境の Python がインストールされている場所を示します。 仮想環境が無効の時は、 sys.prefix は sys.base_prefix と、 sys.exec_prefix は sys.base_exec_prefix と同じになります (全て仮想環境ではない環境の Python のインストール場所を示します)。
+        - sys.prefix, sys.exec_prefix, sys.base_prefix, sys.exec_prefixをprintしてみる（ついでにtorch.cuda.is_available()も）だけの`check_venv.py`を実行してみる
+        - (dementia_cuda10) abe-k@~$ python check_venv.py 
+        /opt/conda
+        /opt/conda
+        /opt/conda
+        /opt/conda
+        False
+        - ええ.........
+    
+    - 新しく仮想環境「`cuda10`」を作る
+        - `check_venv.py`を実行してみると、今度はしっかりとsys.prefixにcuda10が表示されている（ええ.......）
+        - cuda10にtransformers, torch, torchvision, mecab-python3をinstall
+        - ついでにipythonもinstall
+    - **今使ってるコンテナ、cuda10.2だ.......**
+        - cuda10.2はnormal torchで良いらしい
+        - pip install tensorflow-gpuもする（tensorflowはtensorboardのため説が濃厚だが...）
+        > #!/usr/bin/env bash
+        source /fefs/opt/dgx/env_set/common_env_set.sh
+        source /fefs/opt/dgx/env_set/nvcr-tensorrt-1901-py3.sh # なんかpytorch-2003-py3.shにしたらうまく行かない。これでいいならこれでいいのでは
+        /usr/local/bin/nvidia_entrypoint.sh 
+        - を実行すると、`torch.cuda.is_available()=True`になった！！！！！
+
+        - jobを投げるためにshスクリプトを書いたのは良いが、なんかnvidia_entrypoint.shを実行すると一旦止まる気がする...
+        - run.shが動かなくなってる..........それはそうかも........
+            - ただ自分で改変したとこじゃなくて、import errorとか言う次元なんだけど.........
+            - 前のtransformersに戻したらなんとかならないかな？？ -> 2.9.1？ or 2.8.0?
+            - 2.9.1だと'glue_compute_metrics'がimport error, 2.8.0だとEvalPredictionがimport error
+    - てか、普通にgit cloneしたtransformersからpip installしたら多分そういうエラー起きないのでは？
+        - インストールしようとしたら、EnvironmentErrorが出た（ええ.......）
+        - とりあえず最新版transformersをpipでinstall & git pullで最新リポジトリをinstall → してもうまくいかない
+            - なんでじゃ！！！
+            - ああ〜〜〜〜requirements.txtのinstallか　確かにやったわ
+            - transformersをupgradeしたら、modeで指定する方に戻っている→修正
+    
+    - version再確認：transformers=2.10.0, cuda=10.2のtorch, torchvision, tensorflow-gpu
+        - [邪道なこれ](https://qiita.com/kenta1984/items/7f3a5d859a15b20657f3)をとりあえず再現する。実際ちゃんとしたコード書く際はこのoverrideを別スクリプトに書けば良いだけと言う気もする。
+            - 仮想環境内のtransformers/data内の、以下2つをいじる
+                - `metrics/__init__.py` -> if elseの中にoriginal taskを追加
+                - `processors/glue.py` -> OriginalProcessorを追加
+    - `src/run.sh`
+        - うごいた〜〜！！！しかもこの速さはGPU使ってる気がする！！ 
+
+    - $ `qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh`
+    > Your job 3681867 ("dementia_run.sh") has been submitted
+    - おおお！！！！？
+    - $ `qstat`
+    > job-ID     prior   name       user         state submit/start at     queue                          jclass                         slots ja-task-ID 
+    -----------------------------------------------------------------------------------------------
+    3681867 0.01000 dementia_r abe-k        r     05/23/2020 21:26:45 g1dev@dl-gpu52                 gpu-container_g1_dev.default      10        
+    - おおおおお！！
+    - やったらしい？？
+    - まだやってないかも！？？ → outputディレクトリの中にsampleがあることによるerrorだった
+    - やった！！！（output以下にcheckpointが吐き出されてる）
+
+### 5/24(Sun)
+- testsetで評価する
+- その前に--do_predictしてみる？
+~qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh
+Your job 3683056 ("dementia_run.sh") has been submitted
+
+    - NotImplementedError
+    - よくみたらget_test_examplesはdata/processors/util.pyを呼び出している
+        - util.pyはいじってないので確かにエラー出る気がする
+        - なんかutil.pyを覗いてみたら全部ImplementedErrorをraiseするようになっている（？？)
+        - → OriginalProcessorにget_test_云々のmethodがなかったのが原因
+- OriginalProcessorにget_test_examples()を実装してjob投げる
+
+`abe-k@~$ qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh`
+> Your job 3683096 ("dementia_run.sh") has been submitted
+
+- job終了
+    - `output_pred/test_results_original.txt`をみてみる
+    - 0か3か4しか出力していない...
+        - fine-tuning足りない？
+        - そもそも収束してるのか？
+
+### 5/25(Mon)
+- `./evaluate_test.py`を作成し、実行（scikit-learnのprecision, recall, f1を使うだけ）
+- micro average
+    > $ python ./src/predict_test.py -pred ./output_pred/test_results_original.txt -gold ./data/test.txt 
+    > [INFO] 2020/05/25 AM 04:40:40 : evaluate pred_data ... 
+    > precision : 0.6681187040566294
+    > recall : 0.6681187040566294
+    > f1_score : 0.6681187040566294
+
+- macro average （そもそもpredictされていないlabelがあるので、zero_divisionどうこうというエラーが出てくる）
+    > $ python ./src/predict_test.py -pred ./output_pred/test_results_original.txt -gold ./data/test.txt 
+    > [INFO] 2020/05/25 AM 04:41:05 : evaluate pred_data ... 
+    > /uge_mnt/home/abe-k/dementia_dialogue/dementia_dialogue/cuda10/lib/python3.6/site-packages/sklearn/metrics/_classification.py:1221: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+    _warn_prf(average, modifier, msg_start, len(result))
+    > precision : 0.3414099972781596
+    > recall : 0.3511141647754322
+    > f1_score : 0.32978447158249086
+
+- 50epoch回してみる (output dir : `output_do_pred_epoch_50`)
+    - `--save_steps`を変えたい（すごい量になりそうなので）
+    - 3epochで12000steps -> 50epochで200000stepts
+        - とりあえず10000にしとく
+
+- job投げる
+    - `.../output/output_do_pred_epoch_50$ qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementi a_run.sh`
+        > Your job 3683907 ("dementia_run.sh") has been submitted
+        - あれ、できてない
+        - あっ... output directoryで実行しちゃったらそこにlogファイルが生まれるからnot emptyエラーが生じる
+    - `abe-k@~$ qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh`
+        > Your job 3683918 ("dementia_run.sh") has been submitted
     
