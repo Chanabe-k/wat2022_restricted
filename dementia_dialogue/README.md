@@ -2,16 +2,16 @@
 - 大武先生の実験手伝い
 
 ## 環境構築メモ
-- local version (`dementia`)
-    - https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
+- https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/
     - pyenvが怪しいらしいのでこれで環境構築した
-    - `source dementia/bin/activate`
-- server version (`dementia_cuda10`)
-    - `qrsh -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003` # コンテナに入る
-    - `source /fefs/opt/dgx/env_set/common_env_set.sh`
-    - `source /fefs/opt/dgx/env_set/nvcr-tensorrt-1901-py3.sh` # なんかpytorch-2003-py3.shにしたらうまく行かない。これでいいならこれでいいのでは
-    - `/usr/local/bin/nvidia_entrypoint.sh`
-    - `source ./cuda10/bin/activate` # cuda10のvenv仮想環境に入る
+- サーバ仮想環境 (`cuda10`)
+    - python3.6, transformers==2.10, **cuda10.2**
+    - RAIDENで使うとき
+        - `qrsh -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003` # python3.6が使えるpytorchコンテナに入る
+        - `source /fefs/opt/dgx/env_set/common_env_set.sh`
+        - `source /fefs/opt/dgx/env_set/nvcr-tensorrt-1901-py3.sh` # なんかpytorch-2003-py3.shにしたらうまく行かない。これでいいならこれでいいのでは
+        - `/usr/local/bin/nvidia_entrypoint.sh`
+        - `source ./cuda10/bin/activate` # cuda10のvenv仮想環境に入る
 
 ## log
 ### 3/24
