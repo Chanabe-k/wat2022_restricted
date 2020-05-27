@@ -1,4 +1,4 @@
-v# Dementia_dialogue
+# Dementia_dialogue
 - 大武先生の実験手伝い
 
 ## 環境構築メモ
@@ -342,8 +342,6 @@ v# Dementia_dialogue
 52550 total
 ```
 
-
-## TODAY
 ### 5/22(Fri)
 #### モデル作成
 - https://qiita.com/kenta1984/items/7f3a5d859a15b20657f3
@@ -661,6 +659,7 @@ Your job 3683056 ("dementia_run.sh") has been submitted
         recall : 0.42607948939354345
         f1_score : 0.4461795758548998
 
+## TODAY
 ### 5/27 (Wed)
 - コード整形（他のscriptからDataProcessorを継承, run_glue.pyみたいなことをする）
 -  `run_classification.py`を作成
