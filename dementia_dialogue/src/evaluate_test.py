@@ -1,4 +1,4 @@
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 import logging 
 import argparse
 
@@ -10,7 +10,7 @@ logging.info("evaluate pred_data ... ")
 parser = argparse.ArgumentParser("evaluate predicted data with gold data")
 parser.add_argument('-pred', type=str, help="Path to predicted data")
 parser.add_argument('-gold', type=str, help="Path to gold data")
-parser.add_argument('--average', type=str, default = "macro", help="how to average when calculating each score (default : macro)")
+parser.add_argument('--average', type=str, default = "micro", help="how to average when calculating each score (default : macro)")
 
 args = parser.parse_args()
 
@@ -18,6 +18,7 @@ pred_path = args.pred
 gold_path = args.gold
 average = args.average
 
+logging.info("calculate precision, recall, f1_score ... ")
 with open(pred_path) as f_pred, open(gold_path) as f_gold:
     f_pred.readline()
     pred_labels = [pred_line.strip().split('\t')[1] for pred_line in f_pred]
@@ -32,5 +33,9 @@ with open(pred_path) as f_pred, open(gold_path) as f_gold:
     print("precision : {}".format(precision))
     print("recall : {}".format(recall))
     print("f1_score : {}".format(f1_score))
+
+logging.info("make confusion_matrix ... ")
+confusion_matrix = confusion_matrix(gold_labels, pred_labels, labels=["0", "2", "3", "4", "5"])
+print(confusion_matrix)
 
     

@@ -637,4 +637,54 @@ Your job 3683056 ("dementia_run.sh") has been submitted
         - あっ... output directoryで実行しちゃったらそこにlogファイルが生まれるからnot emptyエラーが生じる
     - `abe-k@~$ qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh`
         > Your job 3683918 ("dementia_run.sh") has been submitted
-    
+
+- 50は多すぎるので、10epochにしてjob投げ直す
+    - $ `qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh`
+        > Your job 3683957 ("dementia_run.sh") has been submitted
+
+- 10epochの結果
+    - `python ./src/evaluate_test.py -pred ./output/output_do_pred_epoch_10/test_results_original.txt -gold ./data/test.txt`
+        > [INFO] 2020/05/25 AM 10:07:22 : evaluate pred_data ... 
+        > [INFO] 2020/05/25 AM 10:07:22 : calculate precision, recall, f1_score ... 
+        precision : 0.6540520918413649
+        recall : 0.6540520918413649
+        f1_score : 0.6540520918413649
+        > [INFO] 2020/05/25 AM 10:07:22 : make confusion_matrix ... 
+        [[1357  133  590  107   18]
+        [ 397  205  294   34   19]
+        [ 529  114 5255  286   94]
+        [ 121   28  578  289   14]
+        [  55    8  362   31  101]]
+
+        - macro平均
+        precision : 0.5023437527076132
+        recall : 0.42607948939354345
+        f1_score : 0.4461795758548998
+
+### 5/27 (Wed)
+- コード整形（他のscriptからDataProcessorを継承, run_glue.pyみたいなことをする）
+-  `run_classification.py`を作成
+    - baseはrun_glue.py
+    - 仮想環境をいじった部分をこれで補う
+
+    - とりあえずOriginalDatasetクラスをコピーしてくる
+        - ついでに変更した部分（num_labels, processor, output_mode）も変数として入れておく
+    - metrics周りも修正
+        - glue_compute_metrics()を参照せずに、ほぼ同じものを返すように修正
+    - あとはGlueDatasetをいじればOK？
+        - 結構これが調整必要
+            - GlueDataTrainingArgumentsとかを参照してるが、これがtask_nameを持ってたりする
+            - でもこのclassもそんなにあれじゃないか？
+            - てかこのクラスいる？？
+
+            - 新しくDataTrainingArgumentsを一応定義しておいた（task_nameに関するあれがないので、max_length程度しか働いてないが...）
+        - Robertaなども、mnliなら必要だが今はいらないので一旦コメントアウトしておく
+
+- ある程度debuggerがimport error以外吐き出さなくなった & server上のipythonで各module importもできるか確認したので、これで動くっちゃ動くはず...？
+
+- `./job_src/dementia_run_original.sh`（job投げる用のコード）、`output_run_classification_epoch_3`（output用のディレクトリ）を作成
+    - その前に一旦sampleデータで動かしてみて確認 -> 「dataclassがどうのこうの」というエラーが出る
+        - `@dataclass`を忘れてた
+
+- jobをNew Codeで投げてみる
+    - `qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh`
