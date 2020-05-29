@@ -12,7 +12,7 @@ from enum import Enum
 
 import numpy as np
 
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, EvalPrediction #, GlueDataset
+from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, EvalPrediction
 
 # for OriginalDataset
 import torch
@@ -20,22 +20,14 @@ from torch.utils.data.dataset import Dataset
 from filelock import FileLock
 
 from transformers import (
-#    RobertaTokenizer, 
-#    RobertaTokenizerFast,
     PreTrainedTokenizer,
-#    XLMRobertaTokenizer,
     glue_convert_examples_to_features
 )
-
-#from transformers import GlueDataTrainingArguments as DataTrainingArguments
 
 from transformers import (
     HfArgumentParser,
     Trainer,
     TrainingArguments,
-    #glue_compute_metrics,
-    #glue_output_modes,
-    #glue_tasks_num_labels,
     set_seed,
 )
 
@@ -121,9 +113,6 @@ class OriginalProcessor(DataProcessor):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
-            # TSVファイルにヘッダー行がある場合はコメントアウトを外す
-            # if i == 0:
-            #     continue
             guid = "%s-%s" % (set_type, i)
             text_a = line[0]
             label = line[1]
@@ -182,13 +171,7 @@ class OriginalDataset(Dataset):
             else:
                 logger.info(f"Creating features from dataset file at {args.data_dir}")
                 label_list = self.processor.get_labels()
-                #if args.task_name in ["mnli", "mnli-mm"] and tokenizer.__class__ in (
-                #    RobertaTokenizer,
-                #    RobertaTokenizerFast,
-                #    XLMRobertaTokenizer,
-                #):
-                    # HACK(label indices are swapped in RoBERTa pretrained model)
-                #    label_list[1], label_list[2] = label_list[2], label_list[1]
+                
                 if mode == Split.dev:
                     examples = self.processor.get_dev_examples(args.data_dir)
                 elif mode == Split.test:
@@ -219,6 +202,12 @@ class OriginalDataset(Dataset):
     def get_labels(self):
         return self.processor.get_labels()
     
+def compute_metrics(p: EvalPrediction) -> Dict:
+        def simple_accuracy(preds, labels):
+            return (preds == labels).mean()
+        preds = np.argmax(p.predictions, axis=1)
+        return {"acc": simple_accuracy(preds, p.label_ids)}
+
 task_num_labels = 5
 processor = OriginalProcessor
 output_mode = "classification"
@@ -270,8 +259,6 @@ def main():
 #    try:
     num_labels = task_num_labels
     output_mode = "classification"
-#    except KeyError:
-#        raise ValueError("Task not found: %s" % (data_args.task_name))
 
     # Load pretrained model and tokenizer
     #
@@ -282,7 +269,6 @@ def main():
     config = AutoConfig.from_pretrained(
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
         num_labels=num_labels,
-#        finetuning_task=data_args.task_name,
         cache_dir=model_args.cache_dir,
     )
     tokenizer = AutoTokenizer.from_pretrained(
@@ -300,17 +286,6 @@ def main():
     train_dataset = OriginalDataset(data_args, tokenizer=tokenizer) if training_args.do_train else None
     eval_dataset = OriginalDataset(data_args, tokenizer=tokenizer, mode="dev") if training_args.do_eval else None
     test_dataset = OriginalDataset(data_args, tokenizer=tokenizer, mode="test") if training_args.do_predict else None
-
-    def compute_metrics(p: EvalPrediction) -> Dict:
-        def simple_accuracy(preds, labels):
-            return (preds == labels).mean()
-
-        if output_mode == "classification":
-            preds = np.argmax(p.predictions, axis=1)
-        elif output_mode == "regression":
-            preds = np.squeeze(p.predictions)
-        
-        return {"acc": simple_accuracy(preds, p.label_ids)}
 
     # Initialize our Trainer
     trainer = Trainer(
@@ -337,11 +312,7 @@ def main():
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
 
-        # Loop to handle MNLI double evaluation (matched, mis-matched)
         eval_datasets = [eval_dataset]
-        #if data_args.task_name == "mnli":
-        #    mnli_mm_data_args = dataclasses.replace(data_args, task_name="mnli-mm")
-        #    eval_datasets.append(GlueDataset(mnli_mm_data_args, tokenizer=tokenizer, mode="dev"))
 
         for eval_dataset in eval_datasets:
             eval_result = trainer.evaluate(eval_dataset=eval_dataset)
@@ -361,9 +332,6 @@ def main():
     if training_args.do_predict:
         logging.info("*** Test ***")
         test_datasets = [test_dataset]
-        #if data_args.task_name == "mnli":
-        #    mnli_mm_data_args = dataclasses.replace(data_args, task_name="mnli-mm")
-        #    test_datasets.append(GlueDataset(mnli_mm_data_args, tokenizer=tokenizer, mode="test"))
 
         for test_dataset in test_datasets:
             predictions = trainer.predict(test_dataset=test_dataset).predictions
