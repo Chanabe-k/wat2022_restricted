@@ -687,3 +687,54 @@ Your job 3683056 ("dementia_run.sh") has been submitted
 
 - jobをNew Codeで投げてみる
     - `qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run.sh`
+
+### 5/29(Fri)
+- predict部を分割した`predict_test.py`とそれを実行する`run_predict_test.sh`を作成
+    - ちょっとTrainer周りの仕組みをあんまり理解せずになんとかあれこれやって動いた
+    - ので（？）、試しにsampleでやってみたところ`test_result.txt`の出力がフルで動かした時と異なる
+        - 元は0もpredictされるが、回し直すと3しか出力しなくなる
+
+    > 05/29/2020 03:28:53 - INFO - transformers.tokenization_utils -   Didn't find file /home/abe-k/dementia_dialogue/dementia_dialogue/output/sample_pred_2/added_tokens.json. We won't load it.
+    - 標準エラー出力を見ていると、この文が悪さしてそうな気がしないでもないか？
+    - いや、しかし本当にadded_tokens.jsonがないんだよな.....それってどうしようもなくない？
+
+    > 05/29/2020 03:28:58 - INFO - transformers.trainer -   You are instantiating a Trainer but W&B is not installed. To use wandb logging, run `pip install wandb; wandb login` see https://docs.wandb.com/huggingface.
+    - これも気にはなるが、たぶんこのmoduleがないのはtraining時も同じはずなので可能性は薄そう
+    - やっぱりtraining時にも同じことが書いてあったので、これが原因ではなさそう
+
+    > 05/29/2020 03:27:34 - WARNING - __main__ -   Process rank: -1, device: cuda, n_gpu: 1, distributed training: False, 16-bits training: False
+    05/29/2020 03:27:34 - INFO - __main__ -   Training/evaluation parameters TrainingArguments(output_dir='/home/abe-k/dementia_dialogue/dementia_dialogue/output/sample_pred_2', overwrite_output_dir=False, do_train=True, do_eval=True, do_predict=True, evaluate_during_training=False, per_gpu_train_batch_size=8, per_gpu_eval_batch_size=8, gradient_accumulation_steps=1, learning_rate=5e-05, weight_decay=0.0, adam_epsilon=1e-08, max_grad_norm=1.0, num_train_epochs=3.0, max_steps=-1, warmup_steps=0, logging_dir=None, logging_first_step=False, logging_steps=500, save_steps=500, save_total_limit=None, no_cuda=False, seed=0, fp16=False, fp16_opt_level='O1', local_rank=-1, tpu_num_cores=None, tpu_metrics_debug=False)
+
+    - https://github.com/huggingface/transformers/issues/375
+        - 有益そうなIssue
+        - ただ、やってるんだよなそれは.......
+        > You can first load the original model, and then insert this line into your python file (for example, after line 607 and 610 in run_classifier.py):
+        model.load_state_dict(torch.load("output_dir/pytorch_model.bin"))
+        - ほ〜ん、やってみるか
+        - 謎のエラーが出る
+        > Traceback (most recent call last):
+        File "/home/abe-k/dementia_dialogue/dementia_dialogue/src/predict_test.py", line 106, in <module>
+            main()
+        File "/home/abe-k/dementia_dialogue/dementia_dialogue/src/predict_test.py", line 84, in main
+            compute_metrics=compute_metrics
+        File "/uge_mnt/home/abe-k/dementia_dialogue/dementia_dialogue/cuda10/lib/python3.6/site-packages/transformers/trainer.py", line 190, in __init__
+            self.model = model.to(args.device)
+        AttributeError: '_IncompatibleKeys' object has no attribute 'to'
+
+        - そもそもself.modelに`_IncompatibleKeys`なるものが入ってるのがだいぶ怪しいのだが......
+        - https://discuss.pytorch.org/t/torch-has-not-attribute-load-state-dict/21781/10
+        - 調べてたらCPU上での使い方が載ってたのでメモしとく
+        - > I saved my trained Nets on GPU and now wants to use them on CPU.
+            My code is:
+                checkpoint = torch.load(Path1,map_location=torch.device('cpu'))
+                model.load_state_dict(torch.load(Path1,map_location=torch.device(‘cpu’))[‘model_state_dict’])
+                model.load_state_dict(torch.load(Path1)['model_state_dict'])
+                optimizer.load_state_dict(torch.load(Path1,map_location=torch.device('cpu'))...
+        
+        - `model = model.load_state_dict`としているのがいけなかった（load_state_dictの返り値が_ImcompatibleKeys, ちなみにこれはmodelに対する引数の過不足を見せてくれるものっぽい）
+        - 動いた！！！
+
+- 松田さんからmodelファイルを送ってと言われたので、今のコードで10epochで学習したものをtar.gzして送る
+    - jobを投げる
+    - `qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run_original.sh`
+    > Your job 3690325 ("dementia_run_original.sh") has been submitted
