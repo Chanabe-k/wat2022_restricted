@@ -738,3 +738,25 @@ Your job 3683056 ("dementia_run.sh") has been submitted
     - jobを投げる
     - `qsub -cwd -jc gpu-container_g1_dev -ac d=nvcr-pytorch-2003 ~/job_src/dementia_run_original.sh`
     > Your job 3690325 ("dementia_run_original.sh") has been submitted
+
+### 6/1(Mon)
+- 10epoch自分のソースコードで回してみたやつ（output_run_classification_epoch_10）の結果を確認 & 松田さんにモデルファイル送る
+
+- 結果確認
+> gold ./data/test.txt
+[INFO] 2020/06/01 AM 01:36:33 : evaluate pred_data ... 
+[INFO] 2020/06/01 AM 01:36:33 : calculate precision, recall, f1_score ... 
+precision : 0.655413376894455
+recall : 0.655413376894455
+f1_score : 0.655413376894455
+
+macro: 
+precision : 0.4913963281748906
+recall : 0.4271724007859604
+f1_score : 0.44535246297458875
+[INFO] 2020/06/01 AM 01:36:34 : make confusion_matrix ... 
+[[[1366  134  558  123   24]
+ [ 379  210  297   45   18]
+ [ 472  110 5262  317  117]
+ [ 116   27  583  282   22]
+ [  46   12  361   36  102]]
