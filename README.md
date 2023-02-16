@@ -5,7 +5,6 @@ In 2022, we add a new direction Zh–Ja datasets and restricted vocabulary lists
 
 ## requirements
 - python 3.8
-- `pip install -r requirements.txt`
 - (for evaluation) `pip install sacrebleu[ja]`
 
 ## terminologies (restricted target vocabulary lists)
