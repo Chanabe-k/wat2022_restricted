@@ -6,22 +6,22 @@ from tqdm import tqdm
 import re
 import argparse
 
-def _lowercase(text: str):
+def _lowercase(text: str) -> str:
     return text.lower()
 
-def _remove_backslash(text: str):
+def _remove_backslash(text: str) -> str:
     replaced_text = text.replace('\\', '')
     return replaced_text
 
-def _replace_specialchar(w: str):
+def _replace_specialchar(w: str) -> str:
     specialchars = '+()'
     for specialchar in specialchars:
         w = w.replace(specialchar, '\\' + specialchar)
     return w
 
-def filter_sentence_with_dic(s: str, dic: list, lang: str):
+def filter_sentence_with_dic(s: str, dic: list, lang: str) -> str:
     # HACK: remove unexpected backslash (caused by WAT submission system?)
-    s = _remove_backslash(s)
+    # s = _remove_backslash(s)
     
     orig_s = s
     
