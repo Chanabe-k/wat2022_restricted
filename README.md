@@ -12,7 +12,7 @@ In 2022, we add a new direction Zh–Ja datasets and restricted vocabulary lists
 - Please download the above website.
 
 ## evaluation
-- We calculate two distinct metrics in this task. In detail, please see `evaluation`.
+- We calculate two distinct metrics in this task. In detail, please see `src/evaluation`.
 1. BLEU score
 2. A consistency score: the ratio of #sentences satisfying **exact match** of given constraints over the whole test corpus
 
