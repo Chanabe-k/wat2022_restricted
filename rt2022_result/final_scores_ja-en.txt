@@ -1,0 +1,13 @@
+TMU_system1.txt.filtered
+BLEU+case.mixed+lang.ja-en+numrefs.1+smooth.exp+tok.13a+version.1.5.1 = 39.3 73.8/50.7/37.0/27.4 (BP = 0.891 ratio = 0.897 hyp_len = 39817 ref_len = 44401)
+TMU_system2.txt.filtered
+BLEU+case.mixed+lang.ja-en+numrefs.1+smooth.exp+tok.13a+version.1.5.1 = 23.8 69.5/46.8/33.7/24.8 (BP = 0.587 ratio = 0.652 hyp_len = 28965 ref_len = 44401)
+TMU_system3.txt.filtered
+BLEU+case.mixed+lang.ja-en+numrefs.1+smooth.exp+tok.13a+version.1.5.1 = 39.3 74.1/51.1/37.3/27.8 (BP = 0.884 ratio = 0.890 hyp_len = 39519 ref_len = 44401)
+TMU_system4.txt.filtered
+BLEU+case.mixed+lang.ja-en+numrefs.1+smooth.exp+tok.13a+version.1.5.1 = 31.6 71.4/49.4/36.4/27.4 (BP = 0.729 ratio = 0.760 hyp_len = 33734 ref_len = 44401)
+TMU_system5.txt.filtered
+BLEU+case.mixed+lang.ja-en+numrefs.1+smooth.exp+tok.13a+version.1.5.1 = 42.0 74.2/51.8/38.4/29.0 (BP = 0.923 ratio = 0.926 hyp_len = 41102 ref_len = 44401)
+TMU_system6.txt.filtered
+BLEU+case.mixed+lang.ja-en+numrefs.1+smooth.exp+tok.13a+version.1.5.1 = 42.1 74.0/51.8/38.3/29.0 (BP = 0.927 ratio = 0.929 hyp_len = 41264 ref_len = 44401)
+TMU_systems.docx.filtered

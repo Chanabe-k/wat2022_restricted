@@ -1,0 +1,15 @@
+TMU_system1.txt
+BLEU+case.mixed+lang.en-ja+numrefs.1+smooth.exp+tok.ja-mecab-0.996-IPA+version.1.5.1 = 52.0 79.4/60.5/47.5/37.9 (BP = 0.960 ratio = 0.961 hyp_len = 48265 ref_len = 50243)
+TMU_system2.txt
+BLEU+case.mixed+lang.en-ja+numrefs.1+smooth.exp+tok.ja-mecab-0.996-IPA+version.1.5.1 = 50.5 81.8/63.1/49.8/40.0 (BP = 0.891 ratio = 0.896 hyp_len = 45039 ref_len = 50243)
+TMU_system3.txt
+BLEU+case.mixed+lang.en-ja+numrefs.1+smooth.exp+tok.ja-mecab-0.996-IPA+version.1.5.1 = 50.1 81.9/63.1/49.9/40.1 (BP = 0.882 ratio = 0.889 hyp_len = 44659 ref_len = 50243)
+TMU_system4.txt
+BLEU+case.mixed+lang.en-ja+numrefs.1+smooth.exp+tok.ja-mecab-0.996-IPA+version.1.5.1 = 50.4 81.8/63.1/49.9/40.1 (BP = 0.889 ratio = 0.895 hyp_len = 44947 ref_len = 50243)
+TMU_system5.txt
+BLEU+case.mixed+lang.en-ja+numrefs.1+smooth.exp+tok.ja-mecab-0.996-IPA+version.1.5.1 = 52.4 82.3/64.2/51.3/41.6 (BP = 0.904 ratio = 0.908 hyp_len = 45626 ref_len = 50243)
+TMU_system6.txt
+BLEU+case.mixed+lang.en-ja+numrefs.1+smooth.exp+tok.ja-mecab-0.996-IPA+version.1.5.1 = 52.5 82.2/64.2/51.3/41.7 (BP = 0.907 ratio = 0.911 hyp_len = 45755 ref_len = 50243)
+TMU_system7.txt
+BLEU+case.mixed+lang.en-ja+numrefs.1+smooth.exp+tok.ja-mecab-0.996-IPA+version.1.5.1 = 52.7 82.2/64.2/51.4/41.7 (BP = 0.909 ratio = 0.913 hyp_len = 45857 ref_len = 50243)
+TMU_systems.docx
