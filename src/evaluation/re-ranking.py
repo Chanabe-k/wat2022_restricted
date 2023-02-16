@@ -3,7 +3,7 @@ import pprint
 import argparse
 
 parser = argparse.ArgumentParser(description='description')
-parser.add_argument('-input', type=str, help='Path to input file', default='../../work/all_results_ja-en.txt')
+parser.add_argument('-input', type=str, help='Path to input file', default='../../rt2021_result/final_scores_ja-en.txt')
 args = parser.parse_args()
 print(args.input)
 

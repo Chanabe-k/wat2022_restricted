@@ -6,11 +6,11 @@ DIRECTION=$2 #en-ja
 HOME_PATH=/Users/abe-k/restricted_translation/wat2022_restricted/
 GOLD_PATH=${HOME_PATH}data/ASPEC-JE/test_gold.${LANG}
 # normal
-# FILTERED_OUTPUTS_PATH=${HOME_PATH}work/filtered_outputs/${DIRECTION}
+FILTERED_OUTPUTS_PATH=${HOME_PATH}work/filtered_outputs/${DIRECTION}
 # remove backslash
 # FILTERED_OUTPUTS_PATH=${HOME_PATH}work/filtered_outputs_includeslash/${DIRECTION}
 # no filtered
-FILTERED_OUTPUTS_PATH=${HOME_PATH}submitted_outputs/TMU/${DIRECTION}
+# FILTERED_OUTPUTS_PATH=${HOME_PATH}submitted_outputs/TMU/${DIRECTION}
 
 for OUTPUT_PATH in $( ls ${FILTERED_OUTPUTS_PATH})
 do
